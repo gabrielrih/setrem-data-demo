@@ -2,8 +2,7 @@
 Data activity to simulate the use of Spark and Kafka.
 
 ## Index
-- [TechStack](#techstack)
-- [Creating the environment](#creating-the-environment)
+- [Environment](#environment)
 - [Data injestion](#data-injestion)
     - [Internal raw data](#internal-raw-data)
     - [External raw data](#external-raw-data)
@@ -11,13 +10,13 @@ Data activity to simulate the use of Spark and Kafka.
     - [Query 1](#query-1)
     - [Query 2](#query-2)
 
-## TechStack
-The techstack used for this project was:
-- [Spark](https://spark.apache.org/)
-- Using MacBook for the environment
+## Environment
+Here are some considerations about the enviroment and the tools that we were used.
 
-## Creating the environment
-First of all, we must [follow this steps](ENVIRONMENT.md) to create the environment and install the required tools.
+- The used machine was a MacBook.
+- The current Java version is 1.8.0_411.
+- The spark version is 3.5.1 ([More details here](https://spark.apache.org/downloads.html)).
+- The scala version is 2.12.18.
 
 ## Data injestion
 Once we have the environment and the tools configured, we should create a datalake, put some raw data in this datalake and then import, refine and save this refined data in parquet format.
