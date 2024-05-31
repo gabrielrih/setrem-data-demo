@@ -1,5 +1,5 @@
 # setrem-data-demo
-Data activity to simulate the use of Spark and Kafka.
+Data activity to simulate the use of Spark for data injestion.
 
 ## Index
 - [Environment](#environment)
@@ -11,15 +11,15 @@ Data activity to simulate the use of Spark and Kafka.
     - [Query 2](#query-2)
 
 ## Environment
-Here are some considerations about the enviroment and the tools that we were used.
+Here are some considerations about the enviroment and the tools that I used.
 
-- The used machine was a MacBook.
+- Host machine: MacBook.
 - The current Java version is 1.8.0_411.
-- The spark version is 3.5.1 ([More details here](https://spark.apache.org/downloads.html)).
+- The spark version is 3.5.1.
 - The scala version is 2.12.18.
 
 ## Data injestion
-Once we have the environment and the tools configured, we should create a datalake, put some raw data in this datalake and then import, refine and save this refined data in parquet format.
+Once we have the environment and the tools configured, we should create a datalake, put some raw data in it and then import, refine and save this refined data.
 
 The raw data will be in ```csv``` or ```json``` format, and the refined data will be in ```parquet``` format.
 
@@ -29,7 +29,7 @@ cd /tmp
 mkdir -p datalake/raw/external datalake/raw/internal datalake/refined/batch datalake/refined/stream
 ```
 
-Then you must copy the content of the folder ```datalake```, inside this repository, to you target datalake, in this example, ```/tmp/datalake/```.
+Then you must copy the content of the folder ```datalake/raw```, present in this this repository, to you target datalake. In this tutorial, we are using ```/tmp/datalake/```.
 
 Your datalake structure may look like this:
 
@@ -41,15 +41,15 @@ Then, you must define an environment variable with the full path of your datalak
 export DATALAKE_PATH="/tmp/datalake" 
 ```
 
-> In my example, I'll be using ```/Users/usuario/Documents/git-projects/setrem-data-demo/datalake```
-
 Starting SparkShell:
 ```sh
 cd /opt/spark/bin
 ./spark-shell --master="local[2]"
 ```
 
-> Where "local[2]" represents your local machine and the number of vCores spark will be using
+> Where "local[2]" represents your local machine and the number of vCores that Spark will be using
+
+> /opt/spark/ represents the location where Spark was installed.
 
 On Spark Shell...
 
@@ -58,7 +58,7 @@ Loading the env var:
 val DATALAKE_PATH = sys.env("DATALAKE_PATH")
 ```
 
-To validate that it has value just run:
+To validate if it has value, just run:
 
 ```sh
 print(DATALAKE_PATH)
@@ -66,9 +66,9 @@ print(DATALAKE_PATH)
 
 ### Internal raw data
 Considerations:
-- All the commands here are performed inside spark shell (using the Scala interpreter).
+- All the commands here are performed using Spark shell (using the Scala interpreter).
 - The internal data are using ```csv``` format.
-- The internal data must be appended, so, if you run the commands inside spark multiple times, the ouput data will be appended.
+- The internal data must be appended, so, if you run the commands in Spark multiple times, the output data will be appended.
 - Before saving the content as parquet, we must convert the INT, DECIMAL and TIMESTAMP fields.
 
 The raw data to be injected are here:
@@ -130,11 +130,13 @@ At the end, you should have a content similar to this on the ```refined/stream``
 
 ![refined stream folder on the datalake](./.docs/img/refined_stream_folder.png)
 
+> Note that we are using the word "stream" here, but in fact the data was loaded as batch and not stream.
+
 ### External raw data
 Considerations:
-- All the commands here are performed inside spark shell (using the Scala interpreter).
+- All the commands here are performed using Spark shell (using the Scala interpreter).
 - The external raw data are using ```json``` format.
-- The external raw data must be OVERWRITED, so, if you run the commands inside spark multiple times, the ouput will be always the same.
+- The external raw data must be OVERWRITED, so, if you run the commands in Spark multiple times, the output will be always the same.
 - Before saving the content as parquet, we must convert the INT, DECIMAL and TIMESTAMP fields.
 
 The raw external data to be injected are here:
@@ -217,7 +219,7 @@ LEFT JOIN (
 ) AS r ON ( s.movie_title = r.movie )
 ````
 
-Inside Spark Shell:
+Using Spark Shell:
 ```sh
 val internal_streams = spark.read.format("parquet").load(DATALAKE_PATH + "/refined/stream/streams.parquet")
 internal_streams.createOrReplaceTempView("internal_streams")
@@ -249,7 +251,7 @@ INNER JOIN internal_streams s ON (s.movie_title = r.movie)
 WHERE a.nationality = 'Singaporeans'
 ```
 
-Inside Spark Shell:
+Using Spark Shell:
 ```sh
 val external_authors = spark.read.format("parquet").load(DATALAKE_PATH + "/refined/batch/authors.parquet")
 external_authors.createOrReplaceTempView("external_authors")
