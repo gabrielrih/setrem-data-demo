@@ -304,6 +304,8 @@ Starting Spark Shell
 
 First of all, remember to again define the DATALAKE_PATH environment variable and import it on Spark Shell.
 
+... then, you can start Spark Shell again.
+
 ```sh
 cd /opt/spark/bin
 ./spark-shell --master "local[2]" --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
