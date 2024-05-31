@@ -1,6 +1,4 @@
 .DS_Store
-# output dataset
-datalake/refined
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
