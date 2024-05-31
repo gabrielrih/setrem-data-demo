@@ -1,24 +1,45 @@
 # setrem-data-demo
-Data activity to simulate the use of Spark for data injestion.
+Data activity to simulate the use of Spark and Kafka for a simple data injestion.
+
+This tutorial is organize is two parts:
+- In the first one, we use a folder on the OS to be the datalake. Here we use just Spark for data injestion and extraction.
+- In the second part, we use Kafka as datalake for the internal data.
 
 ## Index
 - [Environment](#environment)
-- [Data injestion](#data-injestion)
-    - [Internal raw data](#internal-raw-data)
-    - [External raw data](#external-raw-data)
-- [Data reading](#data-reading)
-    - [Query 1](#query-1)
-    - [Query 2](#query-2)
+- [First part - Using Spark](#first-part---using-spark)
+    - [Data injestion](#data-injestion)
+        - [Internal raw data](#internal-raw-data)
+        - [External raw data](#external-raw-data)
+    - [Data reading](#data-reading)
+        - [Query 1](#query-1)
+        - [Query 2](#query-2)
+- [Second part - Using Kafka](#second-part---using-kafka)
+    - [Writing data on Kafka](#writing-data-on-kafka)
+        - [Importing movies.csv](#importing-moviescsv)
+        - [Importing streams.csv](#importing-streamscsv)
+        - [Importing users.csv](#importing-userscsv)
+    - [Reading data from Kafka](#reading-data-from-kafkas)
 
 ## Environment
 Here are some considerations about the enviroment and the tools that I used.
 
 - Host machine: MacBook.
-- The current Java version is 1.8.0_411.
-- The spark version is 3.5.1.
-- The scala version is 2.12.18.
+- Basic requirements:
+    - The current Java version is 1.8.0_411.
+- Spark:
+    - Download: [https://spark.apache.org/downloads.html](https://spark.apache.org/downloads.html)
+    - The spark version is 3.5.1.
+    - The scala version is 2.12.18.
+    - Spark was installed on ```/opt/spark/```
+- Kafka:
+    - Download: [https://kafka.apache.org/downloads](https://kafka.apache.org/downloads)
+    - Kafka 3.5.1 com Scala 2.12
+    - Kafka was installed on ```/opt/kafka/```
 
-## Data injestion
+## First part - Using Spark
+
+### Data injestion
 Once we have the environment and the tools configured, we should create a datalake, put some raw data in it and then import, refine and save this refined data.
 
 The raw data will be in ```csv``` or ```json``` format, and the refined data will be in ```parquet``` format.
@@ -64,7 +85,7 @@ To validate if it has value, just run:
 print(DATALAKE_PATH)
 ```
 
-### Internal raw data
+#### Internal raw data
 Considerations:
 - All the commands here are performed using Spark shell (using the Scala interpreter).
 - The internal data are using ```csv``` format.
@@ -132,7 +153,7 @@ At the end, you should have a content similar to this on the ```refined/stream``
 
 > Note that we are using the word "stream" here, but in fact the data was loaded as batch and not stream.
 
-### External raw data
+#### External raw data
 Considerations:
 - All the commands here are performed using Spark shell (using the Scala interpreter).
 - The external raw data are using ```json``` format.
@@ -200,10 +221,10 @@ At the end, you should have a content similar to this on the ```refined/batch```
 
 ![refined batch folder on the datalake](./.docs/img/refined_batch_folder.png)
 
-## Data reading
+### Data reading
 We can use two queries within Spark Shell to validate if the data injestion was performed correctly.
 
-### Query 1
+#### Query 1
 
 It gets the percentage of watched movies which are based on books.
 
@@ -237,7 +258,7 @@ Expected result:
 ![expected result for the query one](./.docs/img/query_1_result.png)
 
 
-### Query 2
+#### Query 2
 
 It gets the amount of movies based on books written by authors from Singapore that was watched in December 2021.
 
@@ -272,3 +293,65 @@ query_2.show(false)
 Expected result:
 
 ![expected result for the query two](./.docs/img/query_2_result.png)
+
+## Second part - Using Kafka
+
+> Before actually use Kafka, __we must install and configure it__. To do that just [follow this tutorial here](KAFKA.md).
+
+### Writing data on Kafka
+
+Starting Spark Shell
+
+First of all, remember to again define the DATALAKE_PATH environment variable and import it on Spark Shell.
+
+```sh
+cd /opt/spark/bin
+./spark-shell --master "local[2]" --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+```
+
+> Note that here we must initialize a package to be using Kafka
+
+#### Importing movies.csv
+
+We must read the file ```${DATALAKE_PATH}/raw/internal/movies.csv```, convert it to JSON and then save it on Spark topic ```internal.movies```:
+
+```
+val df_movies = spark.read.format("csv").option("header", "true").load(DATALAKE_PATH + "/raw/internal/movies.csv")
+df_movies.printSchema
+val json = df_movies.toJSON
+json.write.format("kafka").option("kafka.bootstrap.servers", "localhost:9092").option("compression", "lz4").option("topic", "internal.movies").save
+```
+
+#### Importing streams.csv
+
+We must read the file ```${DATALAKE_PATH}/raw/internal/streams.csv```, convert it to JSON and then save it on Spark topic ```internal.streams```:
+
+```
+val df_streams = spark.read.format("csv").option("header", "true").load(DATALAKE_PATH + "/raw/internal/streams.csv")
+df_streams.printSchema
+val json = df_streams.toJSON
+json.write.format("kafka").option("kafka.bootstrap.servers", "localhost:9092").option("compression", "lz4").option("topic", "internal.streams").save
+```
+
+#### Importing users.csv
+
+We must read the file ```${DATALAKE_PATH}/raw/internal/users.csv```, convert it to JSON and then save it on Spark topic ```internal.users```:
+
+```
+val df_users = spark.read.format("csv").option("header", "true").load(DATALAKE_PATH + "/raw/internal/users.csv")
+df_users.printSchema
+val json = df_users.toJSON
+json.write.format("kafka").option("kafka.bootstrap.servers", "localhost:9092").option("compression", "lz4").option("topic", "internal.users").save
+```
+
+### Reading data from Kafka
+
+Here we are using a simple example of reading data from the __internal.streams__ topic on Kafka:
+
+```
+val test = spark.read.format("kafka").option("kafka.bootstrap.servers", "localhost:9092").option("subscribe", "internal.streams").load
+test.printSchema
+test.count
+```
+
+![reading data from Kafka](.docs/img/reading_data_from_kafka.png)
